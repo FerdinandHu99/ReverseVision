@@ -1,24 +1,72 @@
 package com.ferdinand.reversevision;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.PreviewView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 public class MainActivity extends AppCompatActivity {
-
+    private ListenableFuture<ProcessCameraProvider> processCameraProviderListenableFuture;
+    private PreviewView previewView;
+    private CameraSelector cameraSelector;
+    private String[] REQUIRED_PERMISSIONS = new String[]{Manifest.permission.CAMERA};
+    private static final int REQUEST_CODE_PERMISSIONS = 10;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+
+        previewView = findViewById(R.id.previewView);
+
+        if (allPermissionsGranted()) {
+            startCamera();
+        } else {
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+        }
+    }
+
+    private boolean allPermissionsGranted() {
+        for (String permission : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 初始化相机
+    private void startCamera() {
+        processCameraProviderListenableFuture = ProcessCameraProvider.getInstance(this);
+        processCameraProviderListenableFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider processCameraProvider = processCameraProviderListenableFuture.get();
+                start(processCameraProvider);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void start(ProcessCameraProvider processCameraProvider) {
+        processCameraProvider.unbindAll();
+        cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .build();
+
+        Preview preview = new Preview.Builder().build();
+        preview.setSurfaceProvider(previewView.getSurfaceProvider());
+
+        processCameraProvider.bindToLifecycle(this, cameraSelector, preview);
     }
 }
