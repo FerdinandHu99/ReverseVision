@@ -25,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         previewView = findViewById(R.id.previewView);
 
         if (allPermissionsGranted()) {
@@ -45,7 +44,15 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    // 初始化相机
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                startCamera();
+            }
+        }
+    }
     private void startCamera() {
         processCameraProviderListenableFuture = ProcessCameraProvider.getInstance(this);
         processCameraProviderListenableFuture.addListener(() -> {
