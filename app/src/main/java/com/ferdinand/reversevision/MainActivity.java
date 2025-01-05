@@ -1,8 +1,12 @@
 package com.ferdinand.reversevision;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
@@ -25,10 +29,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        previewView = findViewById(R.id.previewView);
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            String[] cameraList = cameraManager.getCameraIdList();
+            if (cameraList.length == 0) {
+                Log.e("Camera", "No camera detected on this device.");
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+
+//        previewView = findViewById(R.id.previewView);
 
         if (allPermissionsGranted()) {
-            startCamera();
+//            startCamera();
         } else {
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
@@ -58,14 +72,14 @@ public class MainActivity extends AppCompatActivity {
         processCameraProviderListenableFuture.addListener(() -> {
             try {
                 ProcessCameraProvider processCameraProvider = processCameraProviderListenableFuture.get();
-                start(processCameraProvider);
+                bindCamera(processCameraProvider);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }, ContextCompat.getMainExecutor(this));
     }
 
-    private void start(ProcessCameraProvider processCameraProvider) {
+    private void bindCamera(ProcessCameraProvider processCameraProvider) {
         processCameraProvider.unbindAll();
         cameraSelector = new CameraSelector.Builder()
                 .requireLensFacing(CameraSelector.LENS_FACING_BACK)
