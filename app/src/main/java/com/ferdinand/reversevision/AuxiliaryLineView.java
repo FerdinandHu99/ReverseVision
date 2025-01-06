@@ -48,6 +48,11 @@ public class AuxiliaryLineView extends View {
         isEditMode = editMode;
     }
 
+    public void setGuideLine(GuideLine guideLine) {
+        this.guideLine = guideLine;
+        invalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -210,7 +215,7 @@ public class AuxiliaryLineView extends View {
         // 设置画笔的基本样式
         paint.setStyle(Paint.Style.STROKE); // 设置画笔为描边模式
         paint.setStrokeWidth(5); // 设置线条宽度
-        paint.setColor(Color.parseColor("#FFA500"));
+        paint.setColor(Color.parseColor("#FF9600"));
 
         // 绘制曲线：1-4
         for (int i = 0; i < 4; i += 4) {
@@ -369,7 +374,7 @@ public class AuxiliaryLineView extends View {
         paint.setStrokeWidth(5f);
         paint.setColor(Color.YELLOW);
 
-        testDynamic();
+//        testTopView();
     }
 
     private void testTopView() {

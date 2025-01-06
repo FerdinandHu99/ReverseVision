@@ -27,21 +27,21 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <Button
-            android:id="@+id/button6"
+            android:id="@+id/btn_wideAngle"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="广角视角" />
 
         <Button
-            android:id="@+id/button5"
+            android:id="@+id/btn_normalAngle"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:text="普通视角" />
 
         <Button
-            android:id="@+id/button4"
+            android:id="@+id/btn_overlookAngle"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="1"
