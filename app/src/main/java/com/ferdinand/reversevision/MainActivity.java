@@ -146,62 +146,61 @@ public class MainActivity extends AppCompatActivity {
     private AuxiliaryLineView.GuideLine createStaticGuideLine() {
         List<AuxiliaryLineView.Point> testPoints = new java.util.ArrayList<>();
         testPoints.add(new AuxiliaryLineView.Point(200, 400));
-        testPoints.add(new AuxiliaryLineView.Point(220, 300));
-        testPoints.add(new AuxiliaryLineView.Point(240, 200));
-        testPoints.add(new AuxiliaryLineView.Point(260, 100));
+        testPoints.add(new AuxiliaryLineView.Point(240, 320));
+        testPoints.add(new AuxiliaryLineView.Point(280, 240));
+        testPoints.add(new AuxiliaryLineView.Point(320, 160));
+        testPoints.add(new AuxiliaryLineView.Point(360, 80));
 
-        testPoints.add(new AuxiliaryLineView.Point(280, 100));
-        testPoints.add(new AuxiliaryLineView.Point(880, 100));
+        testPoints.add(new AuxiliaryLineView.Point(800, 400));
+        testPoints.add(new AuxiliaryLineView.Point(760, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 240));
+        testPoints.add(new AuxiliaryLineView.Point(680, 160));
+        testPoints.add(new AuxiliaryLineView.Point(640, 80));
 
-        testPoints.add(new AuxiliaryLineView.Point(260, 200));
-        testPoints.add(new AuxiliaryLineView.Point(900, 200));
+        testPoints.add(new AuxiliaryLineView.Point(280, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 320));
 
-        testPoints.add(new AuxiliaryLineView.Point(240, 300));
-        testPoints.add(new AuxiliaryLineView.Point(480, 300));
-        testPoints.add(new AuxiliaryLineView.Point(680, 300));
-        testPoints.add(new AuxiliaryLineView.Point(920, 300));
+        testPoints.add(new AuxiliaryLineView.Point(320, 200));
+        testPoints.add(new AuxiliaryLineView.Point(680, 200));
 
-        testPoints.add(new AuxiliaryLineView.Point(230, 350));
-        testPoints.add(new AuxiliaryLineView.Point(480, 380));
-        testPoints.add(new AuxiliaryLineView.Point(680, 380));
-        testPoints.add(new AuxiliaryLineView.Point(930, 350));
+        testPoints.add(new AuxiliaryLineView.Point(380, 80));
+        testPoints.add(new AuxiliaryLineView.Point(620, 80));
 
-        testPoints.add(new AuxiliaryLineView.Point(990, 400));
-        testPoints.add(new AuxiliaryLineView.Point(970, 300));
-        testPoints.add(new AuxiliaryLineView.Point(950, 200));
-        testPoints.add(new AuxiliaryLineView.Point(930, 100));
         return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.STATIC);
     }
 
     private AuxiliaryLineView.GuideLine createDynamicGuideLine() {
         List<AuxiliaryLineView.Point> testPoints = new java.util.ArrayList<>();
         testPoints.add(new AuxiliaryLineView.Point(200, 400));
-        testPoints.add(new AuxiliaryLineView.Point(220, 300));
-        testPoints.add(new AuxiliaryLineView.Point(240, 200));
-        testPoints.add(new AuxiliaryLineView.Point(260, 100));
+        testPoints.add(new AuxiliaryLineView.Point(240, 320));
+        testPoints.add(new AuxiliaryLineView.Point(280, 240));
+        testPoints.add(new AuxiliaryLineView.Point(320, 160));
+        testPoints.add(new AuxiliaryLineView.Point(360, 80));
 
-        testPoints.add(new AuxiliaryLineView.Point(300, 100));
-        testPoints.add(new AuxiliaryLineView.Point(900, 100));
+        testPoints.add(new AuxiliaryLineView.Point(800, 400));
+        testPoints.add(new AuxiliaryLineView.Point(760, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 240));
+        testPoints.add(new AuxiliaryLineView.Point(680, 160));
+        testPoints.add(new AuxiliaryLineView.Point(640, 80));
 
-        testPoints.add(new AuxiliaryLineView.Point(260, 150));
-        testPoints.add(new AuxiliaryLineView.Point(300, 150));
+        testPoints.add(new AuxiliaryLineView.Point(280, 320));
+        testPoints.add(new AuxiliaryLineView.Point(700, 320));
 
-        testPoints.add(new AuxiliaryLineView.Point(240, 250));
-        testPoints.add(new AuxiliaryLineView.Point(280, 250));
+        testPoints.add(new AuxiliaryLineView.Point(300, 200));
+        testPoints.add(new AuxiliaryLineView.Point(340, 200));
 
-        testPoints.add(new AuxiliaryLineView.Point(280, 300));
-        testPoints.add(new AuxiliaryLineView.Point(920, 300));
+        testPoints.add(new AuxiliaryLineView.Point(660, 200));
+        testPoints.add(new AuxiliaryLineView.Point(700, 200));
 
-        testPoints.add(new AuxiliaryLineView.Point(900, 250));
-        testPoints.add(new AuxiliaryLineView.Point(940, 250));
+        testPoints.add(new AuxiliaryLineView.Point(330, 140));
+        testPoints.add(new AuxiliaryLineView.Point(370, 140));
 
-        testPoints.add(new AuxiliaryLineView.Point(880, 150));
-        testPoints.add(new AuxiliaryLineView.Point(920, 150));
+        testPoints.add(new AuxiliaryLineView.Point(630, 140));
+        testPoints.add(new AuxiliaryLineView.Point(670, 140));
 
-        testPoints.add(new AuxiliaryLineView.Point(990, 400));
-        testPoints.add(new AuxiliaryLineView.Point(970, 300));
-        testPoints.add(new AuxiliaryLineView.Point(950, 200));
-        testPoints.add(new AuxiliaryLineView.Point(930, 100));
+        testPoints.add(new AuxiliaryLineView.Point(380, 80));
+        testPoints.add(new AuxiliaryLineView.Point(620, 80));
+
         return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.DYNAMIC);
     }
 }

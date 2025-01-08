@@ -123,6 +123,11 @@ public class AuxiliaryLineView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (guideLine == null) return;
+        if (this.guideLine.type == GuideLineType.DYNAMIC) {
+            paint.setColor(Color.parseColor("#FF9600"));
+        } else {
+            paint.setColor(Color.YELLOW);
+        }
         for (Line line : guideLine.lines) {
             drawLine(canvas, line);
             if (isEditMode) {
@@ -133,14 +138,13 @@ public class AuxiliaryLineView extends View {
         }
     }
 
-    // 绘制单个点（实心红色圆）
     private void drawPoint(Canvas canvas, Point point) {
-        int OriginalColor = paint.getColor(); // 获取原始画笔颜色
-        paint.setStyle(Paint.Style.FILL); // 设置画笔为填充模式
+        int OriginalColor = paint.getColor();
+        paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.RED);
         canvas.drawCircle(point.x, point.y, 5, paint);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setColor(OriginalColor); // 恢复线条颜色
+        paint.setColor(OriginalColor);
     }
 
     public AuxiliaryLineView(Context context) {
