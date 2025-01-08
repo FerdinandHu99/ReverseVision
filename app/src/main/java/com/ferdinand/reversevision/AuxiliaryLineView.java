@@ -7,11 +7,14 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class AuxiliaryLineView extends View {
     public static class Point {
@@ -89,6 +92,8 @@ public class AuxiliaryLineView extends View {
 
     private boolean isEditMode = false;
 
+    private Set<Integer> selectedPointsSet = new HashSet<>(); // 被选中的点的索引集合
+
     public void setEditMode(boolean editMode) {
         isEditMode = editMode;
     }
@@ -141,7 +146,7 @@ public class AuxiliaryLineView extends View {
     private void drawPoint(Canvas canvas, int pointIndex) {
         int OriginalColor = paint.getColor();
         paint.setStyle(Paint.Style.FILL);
-        if (guideLine.points.get(pointIndex).isSelected) paint.setColor(Color.RED);
+        if (selectedPointsSet.contains(pointIndex)) paint.setColor(Color.RED);
         canvas.drawCircle(guideLine.points.get(pointIndex).x, guideLine.points.get(pointIndex).y, 5, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(OriginalColor);
@@ -149,19 +154,61 @@ public class AuxiliaryLineView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (isEditMode) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    break;
-                case MotionEvent.ACTION_UP:
-                    break;
+        if (!isEditMode) return false;
 
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                int selectedIndex = findTouchedPoint(event.getX(), event.getY());
+                if (selectedIndex != -1) {
+                    selectedPointsSet.add(selectedIndex);
+                    invalidate();
+                    return true; // 消费事件，因为点中了拖拽点
+                }
+                invalidate();
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                if (!selectedPointsSet.isEmpty()) {
+                    for (int index : selectedPointsSet) {
+                        Point point = guideLine.points.get(index);
+                        point.x = event.getX();
+                        point.y = event.getY();
+                        Log.d("TouchEvent", "ACTION_MOVE: point after move: (" + point.x + ", " + point.y + ")");
+                    }
+                    invalidate();
+                    return true; // 消费事件
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                selectedPointsSet.clear();
+                performClick();
+                return true; // 消费事件
+        }
+
+        // 如果触摸点不在拖拽区域，返回 false，让事件继续传递
+        return false;
+    }
+
+
+    @Override
+    public boolean performClick() {
+        return super.performClick();
+    }
+
+    private int findTouchedPoint(float touchX, float touchY) {
+        final float touchRadius = 5; // 可触摸点的半径范围，增加触摸范围以便更容易选择点
+        for (int i = 0; i < guideLine.points.size(); i++) {
+            Point point = guideLine.points.get(i);
+            float dx = touchX - point.x;
+            float dy = touchY - point.y;
+            if (Math.sqrt(dx * dx + dy * dy) <= touchRadius) {
+                return i; // 返回点的索引
             }
         }
-        return super.onTouchEvent(event);
+        return -1; // 没有触摸到任何点，返回 -1
     }
+
 
     public AuxiliaryLineView(Context context) {
         super(context);

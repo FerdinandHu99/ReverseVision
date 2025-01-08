@@ -63,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 AuxiliaryLineView.GuideLine guideLine = createDynamicGuideLine();
+                auxiliaryLineView.setEditMode(true);
                 auxiliaryLineView.setGuideLine(guideLine); // 设置动态引导线
             }
         });
@@ -71,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 AuxiliaryLineView.GuideLine guideLine = createStaticGuideLine();
+                auxiliaryLineView.setEditMode(true);
                 auxiliaryLineView.setGuideLine(guideLine); // 设置静态引导线
             }
         });
