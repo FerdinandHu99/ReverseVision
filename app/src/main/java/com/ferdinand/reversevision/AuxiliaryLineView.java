@@ -7,34 +7,83 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AuxiliaryLineView extends View {
     public static class Point {
         public float x, y;
+        public boolean isSelected;
 
         public Point(float x, float y) {
             this.x = x;
             this.y = y;
+            this.isSelected = false;
         }
     }
 
+    public static class Line {
+        List<Point> points;
+        boolean isDashed; // 是否为虚线
+        boolean isSelected;
+
+        public Line(List<Point> points, boolean isDashed) {
+            this.points = points;
+            this.isDashed = isDashed;
+            this.isSelected = false;
+        }
+
+        public void addPoint(Point point) {
+            points.add(point);
+        }
+    }
 
     public enum GuideLineType {
         STATIC,      // 静态引导线
         DYNAMIC,     // 动态引导线
-        TOP_VIEW     // 俯视引导线
+        TOP     // 俯视引导线
     }
 
     public static class GuideLine {
         public List<Point> points;     // 点集
         public GuideLineType type;    // 引导线类型
+        public List<Line> lines;      // 线集
 
         public GuideLine(List<Point> points, GuideLineType type) {
             this.points = points;
             this.type = type;
+            this.lines = new ArrayList<>();
+            configureLinesBasedOnType();
+        }
+
+        // 根据引导线类型自动配置线
+        private void configureLinesBasedOnType() {
+            switch (this.type) {
+                case STATIC:
+                    configureLines(new int[]{5, 5, 2, 2, 2});
+                    break;
+                case DYNAMIC:
+                    configureLines(new int[]{5, 5, 2, 2, 2, 2, 2, 2});
+                    break;
+                case TOP:
+                    configureLines(new int[]{2, 2, 2, 2});
+                    break;
+            }
+        }
+        // 静态引导线的分组规则
+        private void configureLines(int[] lineSizes) {
+            int pointIndex = 0;
+            for (int lineIndex = 0; lineIndex < lineSizes.length; lineIndex++) {
+                List<Point> linePoints = new ArrayList<>();
+                for (int i = 0; i < lineSizes[lineIndex] && pointIndex < points.size(); i++) {
+                    linePoints.add(points.get(pointIndex++));
+                }
+                boolean isDashed = (lineIndex == 2);
+                lines.add(new Line(linePoints, isDashed));
+            }
         }
     }
 
@@ -53,304 +102,46 @@ public class AuxiliaryLineView extends View {
         invalidate();
     }
 
+    private void drawLine(Canvas canvas, Line line) {
+        if (line == null || line.points == null || line.points.size() < 2) return;
+        if (line.isDashed) {
+            paint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0));
+        } else {
+            paint.setPathEffect(null);
+        }
+        Path path = new Path();
+        path.moveTo(line.points.get(0).x, line.points.get(0).y);
+        if (line.points.size() == 2) {
+            path.lineTo(line.points.get(1).x, line.points.get(1).y);
+        } else {
+            addBezierToPath(path, line.points, 100);
+        }
+        canvas.drawPath(path, paint);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (guideLine == null) return;
-        switch (guideLine.type) {
-            case STATIC:
-                drawStaticGuideLine(canvas);
-                break;
-            case DYNAMIC:
-                drawDynamicGuideLine(canvas);
-                break;
-            case TOP_VIEW:
-                drawTopViewGuideLine(canvas);
-                break;
+        for (Line line : guideLine.lines) {
+            drawLine(canvas, line);
+            if (isEditMode) {
+                for (Point point : line.points) {
+                    drawPoint(canvas, point);
+                }
+            }
         }
-
-
-//        canvas.drawRect(50, 50, 200, 200, paint);
     }
 
     // 绘制单个点（实心红色圆）
     private void drawPoint(Canvas canvas, Point point) {
         int OriginalColor = paint.getColor(); // 获取原始画笔颜色
         paint.setStyle(Paint.Style.FILL); // 设置画笔为填充模式
-        paint.setColor(Color.RED); // 点的颜色为红色
-        canvas.drawCircle(point.x, point.y, 5, paint); // 绘制实心圆，半径为 8
-        paint.setStyle(Paint.Style.STROKE); // 恢复画笔为描边模式
-        paint.setColor(OriginalColor); // 恢复线条颜色为黄色
+        paint.setColor(Color.RED);
+        canvas.drawCircle(point.x, point.y, 5, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setColor(OriginalColor); // 恢复线条颜色
     }
-
-    private void drawStaticGuideLine(Canvas canvas) {
-        // 假设 guideLine.points 存储了所有的点
-        if (guideLine == null || guideLine.points.size() != 20) return;
-
-        // 设置画笔的基本样式
-        paint.setStyle(Paint.Style.STROKE); // 设置画笔为描边模式
-        paint.setStrokeWidth(5); // 设置线条宽度
-
-        // 绘制曲线：1-4
-        paint.setColor(Color.YELLOW); // 默认黄色
-        for (int i = 0; i < 4; i += 4) {
-            Point startPoint = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint = guideLine.points.get(i + 3);
-
-            // 使用贝塞尔曲线绘制
-            Path path = new Path();
-            path.moveTo(startPoint.x, startPoint.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint.x, endPoint.y);
-            canvas.drawPath(path, paint);
-
-            // 如果是 Edit 模式，绘制点
-            if (isEditMode) {
-                drawPoint(canvas, startPoint);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint);
-            }
-        }
-
-        // 绘制直线：5-6
-        paint.setColor(Color.YELLOW); // 默认黄色
-        Point startPoint = guideLine.points.get(4);
-        Point endPoint = guideLine.points.get(5);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        // 在 Edit 模式下绘制点
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制直线：7-8
-        startPoint = guideLine.points.get(6);
-        endPoint = guideLine.points.get(7);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        // 在 Edit 模式下绘制点
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制曲线：9-12
-        paint.setColor(Color.YELLOW); // 默认黄色
-        for (int i = 8; i < 12; i += 4) {
-            Point startPoint1 = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint1 = guideLine.points.get(i + 3);
-
-            // 使用贝塞尔曲线绘制
-            Path path = new Path();
-            path.moveTo(startPoint1.x, startPoint1.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint1.x, endPoint1.y);
-            canvas.drawPath(path, paint);
-
-            // 如果是 Edit 模式，绘制点
-            if (isEditMode) {
-                drawPoint(canvas, startPoint1);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint1);
-            }
-        }
-
-        // 绘制虚线曲线：13-16
-        paint.setColor(Color.YELLOW); // 继续使用黄色
-        paint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0)); // 设置虚线效果
-        for (int i = 12; i < 16; i += 4) {
-            Point startPoint1 = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint1 = guideLine.points.get(i + 3);
-
-            // 使用贝塞尔曲线绘制
-            Path path = new Path();
-            path.moveTo(startPoint1.x, startPoint1.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint1.x, endPoint1.y);
-            canvas.drawPath(path, paint);
-
-            // 如果是 Edit 模式，绘制点
-            if (isEditMode) {
-                drawPoint(canvas, startPoint1);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint1);
-            }
-        }
-
-        // 绘制曲线：17-20
-        paint.setColor(Color.YELLOW); // 继续使用黄色
-        paint.setPathEffect(null); // 恢复为实线
-        for (int i = 16; i < 20; i += 4) {
-            Point startPoint1 = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint1 = guideLine.points.get(i + 3);
-
-            // 使用贝塞尔曲线绘制
-            Path path = new Path();
-            path.moveTo(startPoint1.x, startPoint1.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint1.x, endPoint1.y);
-            canvas.drawPath(path, paint);
-
-            // 如果是 Edit 模式，绘制点
-            if (isEditMode) {
-                drawPoint(canvas, startPoint1);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint1);
-            }
-        }
-    }
-
-    private void drawDynamicGuideLine(Canvas canvas) {
-        if (guideLine == null || guideLine.points.size() != 20) return;
-
-        // 设置画笔的基本样式
-        paint.setStyle(Paint.Style.STROKE); // 设置画笔为描边模式
-        paint.setStrokeWidth(5); // 设置线条宽度
-        paint.setColor(Color.parseColor("#FF9600"));
-
-        // 绘制曲线：1-4
-        for (int i = 0; i < 4; i += 4) {
-            Point startPoint = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint = guideLine.points.get(i + 3);
-
-            Path path = new Path();
-            path.moveTo(startPoint.x, startPoint.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint.x, endPoint.y);
-            canvas.drawPath(path, paint);
-
-            if (isEditMode) {
-                drawPoint(canvas, startPoint);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint);
-            }
-        }
-
-        // 绘制直线：5-6
-        Point startPoint = guideLine.points.get(4);
-        Point endPoint = guideLine.points.get(5);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制直线：7-8
-        startPoint = guideLine.points.get(6);
-        endPoint = guideLine.points.get(7);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制直线：9-10
-        startPoint = guideLine.points.get(8);
-        endPoint = guideLine.points.get(9);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制虚线：11-12
-        startPoint = guideLine.points.get(10);
-        endPoint = guideLine.points.get(11);
-        paint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0)); // 设置虚线效果
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-        paint.setPathEffect(null); // 恢复为实线效果
-
-        // 绘制直线：13-14
-        startPoint = guideLine.points.get(12);
-        endPoint = guideLine.points.get(13);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制直线：15-16
-        startPoint = guideLine.points.get(14);
-        endPoint = guideLine.points.get(15);
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-        if (isEditMode) {
-            drawPoint(canvas, startPoint);
-            drawPoint(canvas, endPoint);
-        }
-
-        // 绘制曲线：17-20
-        for (int i = 16; i < 20; i += 4) {
-            Point startPoint1 = guideLine.points.get(i);
-            Point controlPoint1 = guideLine.points.get(i + 1);
-            Point controlPoint2 = guideLine.points.get(i + 2);
-            Point endPoint1 = guideLine.points.get(i + 3);
-
-            Path path = new Path();
-            path.moveTo(startPoint1.x, startPoint1.y);
-            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, endPoint1.x, endPoint1.y);
-            canvas.drawPath(path, paint);
-
-            if (isEditMode) {
-                drawPoint(canvas, startPoint1);
-                drawPoint(canvas, controlPoint1);
-                drawPoint(canvas, controlPoint2);
-                drawPoint(canvas, endPoint1);
-            }
-        }
-    }
-
-
-    private void drawTopViewGuideLine(Canvas canvas) {
-        if (guideLine == null || guideLine.points.size() != 8) return;
-
-        for (int i = 0; i < guideLine.points.size() - 1; i += 2) {
-            Point startPoint = guideLine.points.get(i);
-            Point endPoint = guideLine.points.get(i + 1);
-
-            // 根据点的序号设置线条样式
-            if (i == 4) { // 第5、6点绘制虚线
-                paint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0)); // 虚线间隔
-            } else { // 其他点绘制实线
-                paint.setPathEffect(null); // 实线
-            }
-
-            // 绘制线段
-            paint.setColor(Color.YELLOW); // 始终保持线条为黄色
-            canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, paint);
-
-            // 在编辑模式下绘制红色点
-            if (isEditMode) {
-//                paint.setColor(Color.RED); // 在编辑模式下使用红色
-//                paint.setStyle(Paint.Style.FILL);
-//                canvas.drawCircle(startPoint.x, startPoint.y, 5, paint); // 绘制起点
-//                canvas.drawCircle(endPoint.x, endPoint.y, 5, paint); // 绘制终点
-                drawPoint(canvas, startPoint);
-                drawPoint(canvas, endPoint);
-            }
-        }
-    }
-
 
     public AuxiliaryLineView(Context context) {
         super(context);
@@ -373,85 +164,50 @@ public class AuxiliaryLineView extends View {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(5f);
         paint.setColor(Color.YELLOW);
-
-//        testTopView();
     }
 
-    private void testTopView() {
-        setEditMode(true);
-        List<Point> testPoints = new java.util.ArrayList<>();
-        testPoints.add(new Point(200, 400));
-        testPoints.add(new Point(200, 100));
-        testPoints.add(new Point(300, 100));
-        testPoints.add(new Point(800, 100));
-        testPoints.add(new Point(300, 300));
-        testPoints.add(new Point(800, 300));
-        testPoints.add(new Point(900, 100));
-        testPoints.add(new Point(900, 400));
-        guideLine = new GuideLine(testPoints, GuideLineType.TOP_VIEW);
+
+    /* **************************贝塞尔曲线计算相关函数******************************** */
+    private void addBezierToPath(Path path, List<Point> controlPoints, int steps) {
+        List<Point> curvePoints = calculateCurve(controlPoints, steps);
+
+        for (int i = 1; i < curvePoints.size(); i++) {
+            path.lineTo(curvePoints.get(i).x, curvePoints.get(i).y);
+        }
     }
 
-    private void testStatic() {
-        setEditMode(true);
-        List<Point> testPoints = new java.util.ArrayList<>();
-        testPoints.add(new Point(200, 400));
-        testPoints.add(new Point(220, 300));
-        testPoints.add(new Point(240, 200));
-        testPoints.add(new Point(260, 100));
+    private List<Point> calculateCurve(List<Point> controlPoints, int steps) {
+        List<Point> curvePoints = new ArrayList<>();
 
-        testPoints.add(new Point(280, 100));
-        testPoints.add(new Point(880, 100));
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;  // t 在 [0, 1] 之间变化
+            curvePoints.add(calculatePoint(controlPoints, t));  // 计算曲线上的点
+        }
 
-        testPoints.add(new Point(260, 200));
-        testPoints.add(new Point(900, 200));
-
-        testPoints.add(new Point(240, 300));
-        testPoints.add(new Point(480, 300));
-        testPoints.add(new Point(680, 300));
-        testPoints.add(new Point(920, 300));
-
-        testPoints.add(new Point(230, 350));
-        testPoints.add(new Point(480, 380));
-        testPoints.add(new Point(680, 380));
-        testPoints.add(new Point(930, 350));
-
-        testPoints.add(new Point(990, 400));
-        testPoints.add(new Point(970, 300));
-        testPoints.add(new Point(950, 200));
-        testPoints.add(new Point(930, 100));
-        guideLine = new GuideLine(testPoints, GuideLineType.STATIC);
+        return curvePoints;
     }
 
-    private void testDynamic() {
-        setEditMode(true);
-        List<Point> testPoints = new java.util.ArrayList<>();
-        testPoints.add(new Point(200, 400));
-        testPoints.add(new Point(220, 300));
-        testPoints.add(new Point(240, 200));
-        testPoints.add(new Point(260, 100));
+    private Point calculatePoint(List<Point> controlPoints, double t) {
+        int n = controlPoints.size() - 1;  // n次贝塞尔曲线
+        Point point = new Point(0, 0);
 
-        testPoints.add(new Point(300, 100));
-        testPoints.add(new Point(900, 100));
+        for (int i = 0; i <= n; i++) {
+            int comb = combination(n, i);  // 组合数 C(n, i)
+            double bernstein = comb * Math.pow(1 - t, n - i) * Math.pow(t, i);  // 伯恩斯坦基函数
+            point.x += (float) (controlPoints.get(i).x * bernstein);
+            point.y += (float) (controlPoints.get(i).y * bernstein);
+        }
 
-        testPoints.add(new Point(260, 150));
-        testPoints.add(new Point(300, 150));
-
-        testPoints.add(new Point(240, 250));
-        testPoints.add(new Point(280, 250));
-
-        testPoints.add(new Point(280, 300));
-        testPoints.add(new Point(920, 300));
-
-        testPoints.add(new Point(900, 250));
-        testPoints.add(new Point(940, 250));
-
-        testPoints.add(new Point(880, 150));
-        testPoints.add(new Point(920, 150));
-
-        testPoints.add(new Point(990, 400));
-        testPoints.add(new Point(970, 300));
-        testPoints.add(new Point(950, 200));
-        testPoints.add(new Point(930, 100));
-        guideLine = new GuideLine(testPoints, GuideLineType.DYNAMIC);
+        return point;
     }
+
+    private int combination(int n, int k) {
+        if (k == 0 || k == n) {
+            return 1;
+        }
+        return combination(n - 1, k - 1) + combination(n - 1, k);
+    }
+
+    /* **************************贝塞尔曲线计算******************************** */
+
 }

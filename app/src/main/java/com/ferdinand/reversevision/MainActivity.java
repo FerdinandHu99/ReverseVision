@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 AuxiliaryLineView.GuideLine guideLine = createTopviewGuideLine();
+                auxiliaryLineView.setEditMode(true);
                 auxiliaryLineView.setGuideLine(guideLine); // 设置顶部视图引导线
             }
         });
@@ -139,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         testPoints.add(new AuxiliaryLineView.Point(800, 300));
         testPoints.add(new AuxiliaryLineView.Point(900, 100));
         testPoints.add(new AuxiliaryLineView.Point(900, 400));
-        return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.TOP_VIEW);
+        return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.TOP);
     }
 
     private AuxiliaryLineView.GuideLine createStaticGuideLine() {
