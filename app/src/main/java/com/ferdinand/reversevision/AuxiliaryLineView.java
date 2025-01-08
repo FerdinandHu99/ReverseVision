@@ -26,19 +26,16 @@ public class AuxiliaryLineView extends View {
     }
 
     public static class Line {
-        List<Point> points;
-        boolean isDashed; // 是否为虚线
+        List<Integer> pointIndices;
+        boolean isDashed;
         boolean isSelected;
 
-        public Line(List<Point> points, boolean isDashed) {
-            this.points = points;
+        public Line(List<Integer> pointIndices, boolean isDashed) {
+            this.pointIndices = pointIndices;
             this.isDashed = isDashed;
             this.isSelected = false;
         }
 
-        public void addPoint(Point point) {
-            points.add(point);
-        }
     }
 
     public enum GuideLineType {
@@ -77,12 +74,11 @@ public class AuxiliaryLineView extends View {
         private void configureLines(int[] lineSizes) {
             int pointIndex = 0;
             for (int lineIndex = 0; lineIndex < lineSizes.length; lineIndex++) {
-                List<Point> linePoints = new ArrayList<>();
+                List<Integer> linePoints = new ArrayList<>();
                 for (int i = 0; i < lineSizes[lineIndex] && pointIndex < points.size(); i++) {
-                    linePoints.add(points.get(pointIndex++));
+                    linePoints.add(pointIndex++);
                 }
-                boolean isDashed = (lineIndex == 2);
-                lines.add(new Line(linePoints, isDashed));
+                lines.add(new Line(linePoints, lineIndex == 2));
             }
         }
     }
@@ -103,18 +99,22 @@ public class AuxiliaryLineView extends View {
     }
 
     private void drawLine(Canvas canvas, Line line) {
-        if (line == null || line.points == null || line.points.size() < 2) return;
+        if (line == null || line.pointIndices == null || line.pointIndices.size() < 2) return;
         if (line.isDashed) {
             paint.setPathEffect(new DashPathEffect(new float[]{10, 10}, 0));
         } else {
             paint.setPathEffect(null);
         }
         Path path = new Path();
-        path.moveTo(line.points.get(0).x, line.points.get(0).y);
-        if (line.points.size() == 2) {
-            path.lineTo(line.points.get(1).x, line.points.get(1).y);
+        path.moveTo(guideLine.points.get(line.pointIndices.get(0)).x, guideLine.points.get(line.pointIndices.get(0)).y);
+        if (line.pointIndices.size() == 2) {
+            path.lineTo(guideLine.points.get(line.pointIndices.get(1)).x, guideLine.points.get(line.pointIndices.get(1)).y);
         } else {
-            addBezierToPath(path, line.points, 100);
+            List<Point> controlPoints = new ArrayList<>();
+            for (Integer index : line.pointIndices) {
+                controlPoints.add(guideLine.points.get(index));
+            }
+            addBezierToPath(path, controlPoints, 100);
         }
         canvas.drawPath(path, paint);
     }
@@ -131,20 +131,36 @@ public class AuxiliaryLineView extends View {
         for (Line line : guideLine.lines) {
             drawLine(canvas, line);
             if (isEditMode) {
-                for (Point point : line.points) {
-                    drawPoint(canvas, point);
+                for (int pointIndex : line.pointIndices) {
+                    drawPoint(canvas, pointIndex);
                 }
             }
         }
     }
 
-    private void drawPoint(Canvas canvas, Point point) {
+    private void drawPoint(Canvas canvas, int pointIndex) {
         int OriginalColor = paint.getColor();
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.RED);
-        canvas.drawCircle(point.x, point.y, 5, paint);
+        if (guideLine.points.get(pointIndex).isSelected) paint.setColor(Color.RED);
+        canvas.drawCircle(guideLine.points.get(pointIndex).x, guideLine.points.get(pointIndex).y, 5, paint);
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(OriginalColor);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (isEditMode) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    break;
+                case MotionEvent.ACTION_UP:
+                    break;
+
+            }
+        }
+        return super.onTouchEvent(event);
     }
 
     public AuxiliaryLineView(Context context) {
@@ -166,7 +182,7 @@ public class AuxiliaryLineView extends View {
         paint = new Paint();
         paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(5f);
+        paint.setStrokeWidth(4f);
         paint.setColor(Color.YELLOW);
     }
 
