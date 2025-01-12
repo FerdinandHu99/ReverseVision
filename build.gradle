@@ -2,3 +2,23 @@
 plugins {
 alias(libs.plugins.android.application) apply false
 }
+
+allprojects{
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            Set<File> fileSet
+            if (options.bootstrapClasspath != null ) {
+                fileSet = options.bootstrapClasspath.getFiles()
+            }else {
+                fileSet = new HashSet<>()
+            }
+
+            List<File> newFileList = new ArrayList<>();
+            newFileList.add(new File("./app/libs/framework.jar"))
+            newFileList.addAll(fileSet)
+            options.bootstrapClasspath = files(
+                    newFileList.toArray()
+            )
+        }
+    }
+}
