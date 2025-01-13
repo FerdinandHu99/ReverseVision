@@ -4,6 +4,12 @@
     android:sharedUserId="android.uid.system"
     android:sharedUserMaxSdkVersion="32">
 
+    <!-- Allows the app to use EVS service and monitor its status -->
+    <uses-permission android:name="android.car.permission.REQUEST_CAR_EVS_ACTIVITY" />
+    <uses-permission android:name="android.car.permission.CONTROL_CAR_EVS_ACTIVITY" />
+    <uses-permission android:name="android.car.permission.USE_CAR_EVS_CAMERA" />
+    <uses-permission android:name="android.car.permission.MONITOR_CAR_EVS_STATUS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
