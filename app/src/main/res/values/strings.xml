@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ReverseVision</string>
+    <string name="close_button_text">Close</string>
 </resources>

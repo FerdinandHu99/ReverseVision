@@ -16,6 +16,7 @@ allprojects{
             List<File> newFileList = new ArrayList<>();
             newFileList.add(new File("./app/libs/framework.jar"))
             newFileList.add(new File("./app/libs/android.car.jar"))
+            newFileList.add(new File("./app/libs/car-evs-helper-lib.jar"))
             newFileList.addAll(fileSet)
             options.bootstrapClasspath = files(
                     newFileList.toArray()

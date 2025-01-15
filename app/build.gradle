@@ -46,6 +46,7 @@ android {
 dependencies {
     compileOnly files('libs/framework.jar')
     compileOnly files('libs/android.car.jar')
+    compileOnly files('libs/car-evs-helper-lib.jar')
 
     implementation libs.appcompat
     implementation libs.material
