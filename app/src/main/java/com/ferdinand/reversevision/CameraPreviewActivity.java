@@ -3,7 +3,6 @@ package com.ferdinand.reversevision;
 import static android.car.evs.CarEvsManager.ERROR_NONE;
 import static android.hardware.display.DisplayManager.DisplayListener;
 
-import android.app.Activity;
 import android.car.Car;
 import android.car.Car.CarServiceLifecycleListener;
 import android.car.CarNotConnectedException;
@@ -24,9 +23,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 
 import androidx.annotation.GuardedBy;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.android.car.internal.evs.CarEvsGLSurfaceView;
 
@@ -34,8 +34,11 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class CameraPreviewActivity extends Activity
+import java.util.List;
+
+public class CameraPreviewActivity extends AppCompatActivity
         implements CarEvsGLSurfaceView.BufferCallback {
+    AuxiliaryLineView auxiliaryLineView;
 
     private static final String TAG = CameraPreviewActivity.class.getSimpleName();
     /**
@@ -87,7 +90,7 @@ public class CameraPreviewActivity extends Activity
     /** GL backed surface view to render the camera preview */
     private CarEvsGLSurfaceView mEvsView;
     private ViewGroup mRootView;
-    private LinearLayout mPreviewContainer;
+    private ConstraintLayout mPreviewContainer;
 
     /** Display manager to monitor the display's state */
     private DisplayManager mDisplayManager;
@@ -110,39 +113,32 @@ public class CameraPreviewActivity extends Activity
 
     private boolean mUseSystemWindow;
 
-    /** Callback to listen to EVS stream */
-    private final CarEvsManager.CarEvsStreamCallback mStreamHandler =
-            new CarEvsManager.CarEvsStreamCallback() {
+    private final CarEvsManager.CarEvsStreamCallback mStreamHandler = new CarEvsManager.CarEvsStreamCallback() {
 
-                @Override
-                public void onStreamEvent(int event) {
-                    // This reference implementation only monitors a stream event without any action.
-                    Log.i(TAG, "Received: " + event);
-                    if (event == CarEvsManager.STREAM_EVENT_STREAM_STOPPED ||
-                            event == CarEvsManager.STREAM_EVENT_TIMEOUT) {
-                        finish();
-                    }
+        @Override
+        public void onStreamEvent(int event) {
+            // This reference implementation only monitors a stream event without any action.
+            Log.i(TAG, "Received: " + event);
+            if (event == CarEvsManager.STREAM_EVENT_STREAM_STOPPED || event == CarEvsManager.STREAM_EVENT_TIMEOUT) {
+                finish();
+            }
+        }
+
+        @Override
+        public void onNewFrame(CarEvsBufferDescriptor buffer) {
+            synchronized (mLock) {
+                if (mStreamState == STREAM_STATE_INVISIBLE) {
+                    // When the activity becomes invisible (e.g. goes background), we immediately
+                    // returns received frame buffers instead of stopping a video stream.
+                    doneWithBufferLocked(buffer);
+                } else {
+                    // Enqueues a new frame and posts a rendering job
+                    mBufferQueue.add(buffer);
                 }
+            }
+        }
+    };
 
-                @Override
-                public void onNewFrame(CarEvsBufferDescriptor buffer) {
-                    synchronized (mLock) {
-                        if (mStreamState == STREAM_STATE_INVISIBLE) {
-                            // When the activity becomes invisible (e.g. goes background), we immediately
-                            // returns received frame buffers instead of stopping a video stream.
-                            doneWithBufferLocked(buffer);
-                        } else {
-                            // Enqueues a new frame and posts a rendering job
-                            mBufferQueue.add(buffer);
-                        }
-                    }
-                }
-            };
-
-    /**
-     * The Activity with showWhenLocked doesn't go to sleep even if the display sleeps.
-     * So we'd like to monitor the display state and react on it manually.
-     */
     private final DisplayListener mDisplayListener = new DisplayListener() {
         @Override
         public void onDisplayAdded(int displayId) {}
@@ -164,7 +160,6 @@ public class CameraPreviewActivity extends Activity
         }
     };
 
-    /** CarService status listener  */
     private final CarServiceLifecycleListener mCarServiceLifecycleListener = (car, ready) -> {
         try {
             synchronized (mLock) {
@@ -172,18 +167,12 @@ public class CameraPreviewActivity extends Activity
                 mEvsManager = ready ? (CarEvsManager) car.getCarManager(Car.CAR_EVS_SERVICE) : null;
                 if (!ready) {
                     if (!mUseSystemWindow) {
-                        // If we were launched by the user manually, we enter the LOST state and
-                        // wait for the car service's restoration.
                         handleVideoStreamLocked(STREAM_STATE_LOST);
                     } else {
-                        // If we were launched by the system,we will clean up the states and
-                        // then finish; the car service will request a new instance when it comes
-                        // back from the incident while the system still requires the rearview.
                         handleVideoStreamLocked(STREAM_STATE_STOPPED);
                         finish();
                     }
                 } else {
-                    // We request to start a video stream if we get connected to the car service.
                     handleVideoStreamLocked(STREAM_STATE_VISIBLE);
                 }
             }
@@ -214,7 +203,6 @@ public class CameraPreviewActivity extends Activity
         }
     };
 
-    // To close the PreviewActiivty when Home button is clicked.
     private void registerBroadcastReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
@@ -226,8 +214,8 @@ public class CameraPreviewActivity extends Activity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_test_camera_preview);
 
         registerBroadcastReceiver();
         parseExtra(getIntent());
@@ -246,19 +234,15 @@ public class CameraPreviewActivity extends Activity
         mEvsView = CarEvsGLSurfaceView.create(getApplication(), this, getApplicationContext()
                 .getResources().getInteger(R.integer.config_evsRearviewCameraInPlaneRotationAngle));
         mRootView = (ViewGroup) LayoutInflater.from(this).inflate(
-                R.layout.evs_preview_activity, /* root= */ null);
-        mPreviewContainer = mRootView.findViewById(R.id.evs_preview_container);
-        LinearLayout.LayoutParams viewParam = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1.0f
+                R.layout.activity_test_camera_preview, /* root= */ null);
+
+        mPreviewContainer = mRootView.findViewById(R.id.test_evs_preview_container);
+        ConstraintLayout.LayoutParams viewParam = new ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.MATCH_PARENT,
+                ConstraintLayout.LayoutParams.MATCH_PARENT
         );
         mEvsView.setLayoutParams(viewParam);
         mPreviewContainer.addView(mEvsView, 0);
-        View closeButton = mRootView.findViewById(R.id.close_button);
-        if (closeButton != null) {
-            closeButton.setOnClickListener(v -> finish());
-        }
 
         int width = WindowManager.LayoutParams.MATCH_PARENT;
         int height = WindowManager.LayoutParams.MATCH_PARENT;
@@ -281,6 +265,111 @@ public class CameraPreviewActivity extends Activity
         } else {
             setContentView(mRootView, params);
         }
+
+        auxiliaryLineView = findViewById(R.id.auxiliaryLineView);
+        View btn_wideAngle = findViewById(R.id.btn_wideAngle);
+        View btn_normalAngle = findViewById(R.id.btn_normalAngle);
+        View btn_overlookAngle = findViewById(R.id.btn_overlookAngle);
+
+        btn_wideAngle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AuxiliaryLineView.GuideLine guideLine = createDynamicGuideLine();
+                auxiliaryLineView.setEditMode(true);
+                auxiliaryLineView.setGuideLine(guideLine); // 设置动态引导线
+            }
+        });
+
+        btn_normalAngle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AuxiliaryLineView.GuideLine guideLine = createStaticGuideLine();
+                auxiliaryLineView.setEditMode(true);
+                auxiliaryLineView.setGuideLine(guideLine); // 设置静态引导线
+            }
+        });
+
+        btn_overlookAngle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AuxiliaryLineView.GuideLine guideLine = createTopviewGuideLine();
+                auxiliaryLineView.setEditMode(true);
+                auxiliaryLineView.setGuideLine(guideLine); // 设置顶部视图引导线
+            }
+        });
+    }
+    private AuxiliaryLineView.GuideLine createTopviewGuideLine() {
+        List<AuxiliaryLineView.Point> testPoints = new java.util.ArrayList<>();
+        testPoints.add(new AuxiliaryLineView.Point(200, 400));
+        testPoints.add(new AuxiliaryLineView.Point(200, 100));
+        testPoints.add(new AuxiliaryLineView.Point(300, 100));
+        testPoints.add(new AuxiliaryLineView.Point(800, 100));
+        testPoints.add(new AuxiliaryLineView.Point(300, 300));
+        testPoints.add(new AuxiliaryLineView.Point(800, 300));
+        testPoints.add(new AuxiliaryLineView.Point(900, 100));
+        testPoints.add(new AuxiliaryLineView.Point(900, 400));
+        return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.TOP);
+    }
+
+    private AuxiliaryLineView.GuideLine createStaticGuideLine() {
+        List<AuxiliaryLineView.Point> testPoints = new java.util.ArrayList<>();
+        testPoints.add(new AuxiliaryLineView.Point(200, 400));
+        testPoints.add(new AuxiliaryLineView.Point(240, 320));
+        testPoints.add(new AuxiliaryLineView.Point(280, 240));
+        testPoints.add(new AuxiliaryLineView.Point(320, 160));
+        testPoints.add(new AuxiliaryLineView.Point(360, 80));
+
+        testPoints.add(new AuxiliaryLineView.Point(800, 400));
+        testPoints.add(new AuxiliaryLineView.Point(760, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 240));
+        testPoints.add(new AuxiliaryLineView.Point(680, 160));
+        testPoints.add(new AuxiliaryLineView.Point(640, 80));
+
+        testPoints.add(new AuxiliaryLineView.Point(280, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 320));
+
+        testPoints.add(new AuxiliaryLineView.Point(320, 200));
+        testPoints.add(new AuxiliaryLineView.Point(680, 200));
+
+        testPoints.add(new AuxiliaryLineView.Point(380, 80));
+        testPoints.add(new AuxiliaryLineView.Point(620, 80));
+
+        return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.STATIC);
+    }
+
+    private AuxiliaryLineView.GuideLine createDynamicGuideLine() {
+        List<AuxiliaryLineView.Point> testPoints = new java.util.ArrayList<>();
+        testPoints.add(new AuxiliaryLineView.Point(200, 400));
+        testPoints.add(new AuxiliaryLineView.Point(240, 320));
+        testPoints.add(new AuxiliaryLineView.Point(280, 240));
+        testPoints.add(new AuxiliaryLineView.Point(320, 160));
+        testPoints.add(new AuxiliaryLineView.Point(360, 80));
+
+        testPoints.add(new AuxiliaryLineView.Point(800, 400));
+        testPoints.add(new AuxiliaryLineView.Point(760, 320));
+        testPoints.add(new AuxiliaryLineView.Point(720, 240));
+        testPoints.add(new AuxiliaryLineView.Point(680, 160));
+        testPoints.add(new AuxiliaryLineView.Point(640, 80));
+
+        testPoints.add(new AuxiliaryLineView.Point(280, 320));
+        testPoints.add(new AuxiliaryLineView.Point(700, 320));
+
+        testPoints.add(new AuxiliaryLineView.Point(300, 200));
+        testPoints.add(new AuxiliaryLineView.Point(340, 200));
+
+        testPoints.add(new AuxiliaryLineView.Point(660, 200));
+        testPoints.add(new AuxiliaryLineView.Point(700, 200));
+
+        testPoints.add(new AuxiliaryLineView.Point(330, 140));
+        testPoints.add(new AuxiliaryLineView.Point(370, 140));
+
+        testPoints.add(new AuxiliaryLineView.Point(630, 140));
+        testPoints.add(new AuxiliaryLineView.Point(670, 140));
+
+        testPoints.add(new AuxiliaryLineView.Point(380, 80));
+        testPoints.add(new AuxiliaryLineView.Point(620, 80));
+
+        return new AuxiliaryLineView.GuideLine(testPoints, AuxiliaryLineView.GuideLineType.DYNAMIC);
     }
 
     @Override
@@ -412,9 +501,7 @@ public class CameraPreviewActivity extends Activity
             Log.d(TAG, "Completed: " + streamStateToString(mStreamState));
         }
     }
-
-    // Hides the view when the display is off to save the system resource, since this has
-    // 'showWhenLocked' attribute, this will not go to PAUSED state even if the display turns off.
+    
     private int decideViewVisibility() {
         Display defaultDisplay = mDisplayManager.getDisplay(Display.DEFAULT_DISPLAY);
         int state = defaultDisplay.getState();
