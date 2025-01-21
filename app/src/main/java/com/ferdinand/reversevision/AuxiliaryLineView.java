@@ -51,10 +51,20 @@ public class AuxiliaryLineView extends View {
         public List<Point> points;     // 点集
         public GuideLineType type;    // 引导线类型
         public List<Line> lines;      // 线集
+        public int angle;
 
         public GuideLine(List<Point> points, GuideLineType type) {
             this.points = points;
             this.type = type;
+            this.lines = new ArrayList<>();
+            angle = 0;
+            configureLinesBasedOnType();
+        }
+
+        public GuideLine(List<Point> points, GuideLineType type, int angle) {
+            this.points = points;
+            this.type = type;
+            this.angle = angle;
             this.lines = new ArrayList<>();
             configureLinesBasedOnType();
         }
