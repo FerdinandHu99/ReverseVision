@@ -113,6 +113,8 @@ public class CameraPreviewActivity extends AppCompatActivity
 
     private boolean mUseSystemWindow;
 
+    List<AuxiliaryLineView.GuideLine> mGuidelines;
+
     private final CarEvsManager.CarEvsStreamCallback mStreamHandler = new CarEvsManager.CarEvsStreamCallback() {
 
         @Override
@@ -271,12 +273,12 @@ public class CameraPreviewActivity extends AppCompatActivity
         View btn_normalAngle = findViewById(R.id.btn_normalAngle);
         View btn_overlookAngle = findViewById(R.id.btn_overlookAngle);
 
-        List<AuxiliaryLineView.GuideLine> guidelines = AuxiliaryLineManager.readGuidelinesFromCSV("/product/auxiliaryLineData.csv");
+        mGuidelines = AuxiliaryLineManager.readGuidelinesFromCSV("/product/auxiliaryLineData.csv");
         btn_wideAngle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 auxiliaryLineView.setEditMode(true);
-                auxiliaryLineView.setGuideLine(guidelines.get(2)); // 设置动态引导线
+                auxiliaryLineView.setGuideLine(mGuidelines.get(2)); // 设置动态引导线
             }
         });
 
@@ -284,7 +286,7 @@ public class CameraPreviewActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 auxiliaryLineView.setEditMode(true);
-                auxiliaryLineView.setGuideLine(guidelines.get(1)); // 设置静态引导线
+                auxiliaryLineView.setGuideLine(mGuidelines.get(1)); // 设置静态引导线
             }
         });
 
@@ -292,7 +294,7 @@ public class CameraPreviewActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 auxiliaryLineView.setEditMode(true);
-                auxiliaryLineView.setGuideLine(guidelines.get(0)); // 设置顶部视图引导线
+                auxiliaryLineView.setGuideLine(mGuidelines.get(0)); // 设置顶部视图引导线
             }
         });
     }
